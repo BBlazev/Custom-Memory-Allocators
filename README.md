@@ -50,10 +50,10 @@ Each allocated block consists of:
 
 | Strategy   | Time Complexity | Memory Efficiency | Fragmentation Pattern | Use Case |
 |------------|----------------|-------------------|----------------------|----------|
-| First-Fit  | O(n) best case | Moderate          | Clustered at start   | General purpose |
-| Best-Fit   | O(n) always    | High              | Many small fragments | Memory-constrained |
-| Worst-Fit  | O(n) always    | Low               | Large fragments      | Varied allocation sizes |
-| Next-Fit   | O(n) average   | Moderate          | Distributed          | Long-running processes |
+| First-Fit  | O(n/2) average | Moderate          | Clustered at start   | General purpose |
+| Best-Fit   | O(n) average    | High              | Many small fragments | Memory-constrained |
+| Worst-Fit  | O(n) average    | Low               | Large fragments      | Varied allocation sizes |
+| Next-Fit   | ~O(n/2) average   | Moderate          | Distributed          | Long-running processes |
 
 ## Performance Characteristics
 
