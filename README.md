@@ -2,7 +2,7 @@
 
 Four memory allocator search policies — first-fit, next-fit, best-fit, worst-fit — implemented on top of a shared implicit free-list design in C, with the heap backed by a static 1 GiB region declared in NASM.
 
-This is a learning project. It is not a drop-in `malloc` replacement. See [Limitations](#limitations).
+This is a learning project. It is not a drop-in `malloc` replacement.
 
 ## Design
 
