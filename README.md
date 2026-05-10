@@ -1,68 +1,55 @@
-# Custom Memory Allocators
+## Custom Memory Allocators
 
-Four memory allocator search policies — first-fit, next-fit, best-fit, worst-fit — implemented on top of a shared implicit free-list design in C, with the heap backed by a static 1 GiB region declared in NASM.
+Four memory allocator search policies — first-fit, next-fit, best-fit, worst-fit — sharing one implicit free-list implementation. Heap is a static 1 GiB BSS region declared in NASM. Linux x86-64.
 
-This is a learning project. It is not a drop-in `malloc` replacement.
+This is a learning project. Not a `malloc` replacement.
 
-## Design
-
-All four allocators share the same memory layout:
+### Layout
 
 ```
-[hdr][user data][hdr][user data] ... [hdr w=0]
- 4B     4·w B     4B     4·w B          4B
+include/allocator.h     shared types, macros, prototypes
+src/alloc.c             alloc, free_it, show, make_allocation
+src/find_block.c        all four policies, selected at compile time
+src/heap.asm            1 GiB static heap
+tests/test_basic.c      assertion-based tests
+examples/demo.c         the original printf walkthrough
 ```
 
-- **Header** (`struct s_header`, 4 bytes, packed): 30-bit block size in 4-byte words, 1 alloced bit, 1 reserved bit.
-- **Heap** (`memspace`, NASM): static 1 GiB region in `.bss`. Fixed size — no `sbrk`, no `mmap`, no expansion.
-- **End sentinel**: a header with `w == 0` marks the unused tail of the heap. Allocation walks until it finds a fitting free block or the sentinel.
-- **Alignment**: all blocks are 4-byte aligned. Requests are rounded up: `words = ceil(bytes / 4)`.
+### Build
 
-The four implementations differ only in `findBlock_`, the function that picks which free block to use.
+```
+make POLICY=first_fit       # default
+make POLICY=best_fit
+make POLICY=worst_fit
+make POLICY=next_fit
 
-| Allocator   | Search policy                                                  |
-| ----------- | -------------------------------------------------------------- |
-| First-Fit   | First free block with `w >= requested`                         |
-| Next-Fit    | Same, but resumes from the last allocation site (rover)        |
-| Best-Fit    | Free block with smallest `w >= requested` (full scan)          |
-| Worst-Fit   | Free block with largest `w >= requested` (full scan)           |
+make test POLICY=best_fit
+make test-all
+make asan POLICY=next_fit
+make demo POLICY=first_fit
+make clean
+```
 
-## API
+### API
 
 ```c
-void  *alloc(int32 bytes);   // returns user pointer, or NULL with errno set
-bool   free_it(void *addr);  // marks block free, zeros user region
-void   show();               // prints the heap as a list of blocks
+void *alloc(uint32_t bytes);
+bool  free_it(void *address);
+void  show(void);
 ```
 
-Convenience macros: `alloc_k(n)`, `alloc_m(n)`, `alloc_g(n)` for KiB/MiB/GiB requests.
+`errno` on failure: `ErrorNoMemory`, `ErrorDoubleFree`, `ErrorUnknown`.
 
-`errno` values on failure: `ErrorNoMemory`, `ErrorDoubleFree`, `ErrorUnknown`.
+### Status
 
-## Build
+Done:
+- Iterative search.
+- Four distinct policies behind one shared codebase.
+- Real test suite under sanitizers.
 
-Each strategy lives in its own folder. Inside one of them:
-
-```sh
-nasm -f elf64 heap.asm -o heap.o
-gcc -c main.c -o main.o
-gcc main.o heap.o -o allocator
-./allocator
-```
-
-Linux x86-64 only. The NASM file uses the SysV calling convention and ELF symbol naming.
-
-## Example
-
-```c
-int8 *a = alloc(5);      // 5 bytes -> 2 words
-int8 *b = alloc(2000);   // 2000 bytes -> 500 words
-free_it(b);
-int8 *c = alloc(1560);   // first/best/worst will reuse b's slot; next-fit may not
-show();
-```
-
-
-## License
-
-Apache-2.0.
+Next:
+- Block splitting on alloc.
+- Boundary tags + immediate coalescing on free.
+- Explicit free list, then segregated free lists.
+- Bump, pool, buddy.
+- Per-thread arenas + benchmark harness.
