@@ -1,5 +1,7 @@
 #include "allocator.h"
 
+#define MIN_SPLIT_WORDS 4
+
 void zero(uint8_t *str, uint16_t size) {
     uint8_t *p;
     uint16_t counter;
@@ -19,7 +21,15 @@ void *make_allocation(word words, header *hdr) {
         returnError(ErrorNoMemory);
 
     if (!hdr->alloced && hdr->w > 0) {
-    } else {
+        if (hdr->w >= words + 1 + MIN_SPLIT_WORDS) {
+            word leftover_size = hdr->w - words - 1;
+            header *leftover  = (header *)((char *)hdr + 4 + words * 4);
+            leftover->w       = leftover_size;
+            leftover->alloced = false;
+            hdr->w = words;
+        }
+    }
+    else {
         hdr->w = words;
         header *next = (header *)((char *) hdr + hdr->w * 4 + 4);
         next->w = 0;

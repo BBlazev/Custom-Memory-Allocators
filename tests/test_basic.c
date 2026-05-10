@@ -96,6 +96,21 @@ static bool test_alloc_free_pattern(void) {
     return true;
 }
 
+static bool test_splitting_creates_reusable_leftover(void)
+{
+    void *a = alloc(8000);
+    if(!a) return false;
+    if(!free_it(a)) return false;
+
+    void *b = alloc(40);
+    if(!b) return false;
+
+    void *c = alloc(40);
+    if(!c) return false;
+
+    return (char*)c < (char*)a + 8000;
+}
+
 int main(void) {
     printf("Running tests...\n");
 
@@ -109,6 +124,7 @@ int main(void) {
     TEST(test_size_rounding);
     TEST(test_many_allocs);
     TEST(test_alloc_free_pattern);
+    TEST(test_splitting_creates_reusable_leftover);
 
     printf("\n%d/%d passed\n", tests_passed, tests_run);
     return tests_passed == tests_run ? 0 : 1;
